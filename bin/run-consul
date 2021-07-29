@@ -130,6 +130,18 @@ function get_instance_ip_address {
   get_instance_metadata_value "instance/network-interfaces/$network_interface_number/access-configs/0/external-ip"
 }
 
+function get_instance_ip_address_private {
+  local network_interface_number="$1"
+
+  # If no network interface number was specified, default to the first one
+  if [[ -z "$network_interface_number" ]]; then
+    network_interface_number=0
+  fi
+
+  log_info "Looking up Compute Instance IP Address on Network Interface $network_interface_number"
+  get_instance_metadata_value "instance/network-interfaces/$network_interface_number/ip"
+}
+
 function split_by_lines {
   local prefix="$1"
   shift
@@ -172,7 +184,8 @@ function generate_consul_config {
   local instance_ip_address=""
   local instance_region=""
   local ui="false"
-
+  
+  instance_ip_address_private=$(get_instance_ip_address_private)
   instance_ip_address=$(get_instance_ip_address)
   instance_name=$(get_instance_name)
   instance_region=$(get_instance_region)
@@ -284,7 +297,7 @@ EOF
       {
         "id": "snake_service",
         "name": "Service Snake",
-        "http": "http://$instance_ip_address:8080/public/ping",
+        "http": "http://$instance_ip_address_private:8080/public/ping",
         "interval": "15s",
         "timeout": "5s"
       }
